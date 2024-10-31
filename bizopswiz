@@ -1,0 +1,74 @@
+from anthropic import Anthropic
+import pandas as pd
+import streamlit as st
+
+class SalesOperationsAssistant:
+    def __init__(self, api_key):
+        self.client = Anthropic(api_key=api_key)
+        
+        # Company context
+        self.company_context = """
+        Company Profile:
+        - Current ARR: $675,000
+        - Growth Target: 200% YoY
+        - Average Deal Size: $6,785.15
+        - Sales Cycle: 45 days
+        - Current Team: 1 founder
+        - Sales Budget: $900K annually
+        
+        You are a specialized Sales Operations advisor. You help analyze sales strategies,
+        provide recommendations on team structure, and assist with sales planning.
+        Use the company context above when relevant to your responses.
+        """
+        
+    def get_response(self, query):
+        message = self.client.messages.create(
+            model="claude-3-opus-20240229",
+            max_tokens=1024,
+            temperature=0.7,
+            messages=[
+                {
+                    "role": "system",
+                    "content": self.company_context
+                },
+                {
+                    "role": "user",
+                    "content": query
+                }
+            ]
+        )
+        return message.content
+
+# Streamlit web interface
+def main():
+    st.title("Sales Operations Advisor")
+    st.write("Ask questions about sales strategy, team structure, and growth plans.")
+
+    # Initialize assistant
+    if 'assistant' not in st.session_state:
+        st.session_state.assistant = SalesOperationsAssistant('your-api-key')
+
+    # Chat interface
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
+
+    # Display chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Chat input
+    if prompt := st.chat_input("What would you like to know?"):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Get assistant response
+        with st.chat_message("assistant"):
+            response = st.session_state.assistant.get_response(prompt)
+            st.markdown(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+
+if __name__ == "__main__":
+    main()
